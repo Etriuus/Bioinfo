@@ -86,10 +86,10 @@ class GraphVisualizer:
         self.root = root
         self.root.title("Visualizador de Algoritmos")
         
-        # Asegurarse que la ventana tenga un tamaño mínimo
-        self.root.minsize(400, 300)
+        # Asegurar tamaño mínimo
+        self.root.minsize(400, 200)
         
-        # Frame principal con padding
+        # Frame principal
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(padx=20, pady=20, fill='both', expand=True)
         
@@ -99,13 +99,13 @@ class GraphVisualizer:
         
         ttk.Label(frame_selector, text="Seleccione el algoritmo:").pack(side='left')
         self.algorithm_type = ttk.Combobox(frame_selector, 
-                                         values=["PPI Network", 
-                                                "Vertex Cover - Brute Force",
-                                                "Vertex Cover - Greedy",
-                                                "Ordenamiento - Visualización Normal",
-                                                "Ordenamiento - Visualización Circular"],
-                                         state='readonly',  # Importante: previene entrada manual
-                                         width=30)
+                                           values=["PPI Network", 
+                                                   "Vertex Cover - Brute Force",
+                                                   "Vertex Cover - Greedy",
+                                                   "Ordenamiento - Visualización Normal",
+                                                   "Ordenamiento - Visualización Circular"],
+                                           state='readonly',
+                                           width=30)
         self.algorithm_type.pack(side='left', padx=(10, 0))
         self.algorithm_type.set("PPI Network")
         
@@ -114,10 +114,15 @@ class GraphVisualizer:
         self.params_frame.pack(fill='x', pady=10, padx=5)
         
         # Botón para ejecutar
-        self.run_button = ttk.Button(self.main_frame, 
-                                   text="Ejecutar", 
-                                   command=self.run_algorithm)
+        self.run_button = ttk.Button(self.main_frame, text="Ejecutar", command=self.run_algorithm)
         self.run_button.pack(pady=10)
+        
+        # Área de resultados (oculta inicialmente)
+        self.results_frame = ttk.LabelFrame(self.main_frame, text="Resultados")
+        self.results_frame.pack(fill='both', expand=True, pady=10, padx=5)
+        self.results_text = tk.Text(self.results_frame, wrap='word', height=5, state='disabled')
+        self.results_text.pack(fill='both', expand=True, padx=5, pady=5)
+        self.results_frame.pack_forget()  # Ocultar inicialmente
         
         # Inicializar parámetros
         self.setup_ppi_params()
@@ -164,7 +169,6 @@ class GraphVisualizer:
         ttk.Entry(frame, textvariable=self.sequence_length, width=10).pack(side='left', padx=(10, 0))
 
     def update_params(self, event=None):
-        # Limpiar frame de parámetros
         for widget in self.params_frame.winfo_children():
             widget.destroy()
         
@@ -175,9 +179,20 @@ class GraphVisualizer:
             self.setup_vertex_cover_params()
         else:
             self.setup_sorting_params()
-    
+
+    def append_to_results(self, message):
+        self.results_text.configure(state='normal')
+        self.results_text.insert('end', message + '\n')
+        self.results_text.configure(state='disabled')
+
     def run_algorithm(self):
         algorithm = self.algorithm_type.get()
+        self.results_text.configure(state='normal')
+        self.results_text.delete(1.0, 'end')  # Limpiar resultados previos
+        self.results_text.configure(state='disabled')
+        
+        # Ocultar siempre el área de resultados al iniciar la ejecución
+        self.results_frame.pack_forget()
         
         if "PPI Network" in algorithm:
             # Crear y mostrar grafo PPI
@@ -188,42 +203,59 @@ class GraphVisualizer:
             # Agregar algunas aristas aleatorias
             for i in range(n-1):
                 ppi_graph.add_edge(nodes[i], nodes[i+1])
+            plt.figure()  # Crear nueva figura
             nx.draw(ppi_graph, with_labels=True, node_color="lightblue", edge_color="gray")
             plt.show()
             
         elif "Vertex Cover - Brute Force" in algorithm:
+            # Mostrar tabla de resultados
+            self.results_frame.pack(fill='both', expand=True, pady=10, padx=5)
+            
+            # Calcular Vertex Cover usando fuerza bruta
             G = nx.Graph()
             nodes = self.nodes_input.get().split(',')
             edges = [tuple(edge.split(',')) for edge in self.edges_input.get().split(';')]
             G.add_nodes_from(nodes)
             G.add_edges_from(edges)
             cover = brute_force_vertex_cover(G)
-            print(f"Vertex Cover (Brute Force): {cover}")
+            self.append_to_results(f"Vertex Cover (Brute Force): {cover}")
+            plt.figure()  # Crear nueva figura
             nx.draw(G, with_labels=True)
             plt.show()
             
         elif "Vertex Cover - Greedy" in algorithm:
+            # Mostrar tabla de resultados
+            self.results_frame.pack(fill='both', expand=True, pady=10, padx=5)
+            
+            # Calcular Vertex Cover usando Greedy
             G = nx.Graph()
             nodes = self.nodes_input.get().split(',')
             edges = [tuple(edge.split(',')) for edge in self.edges_input.get().split(';')]
             G.add_nodes_from(nodes)
             G.add_edges_from(edges)
             cover = greedy_vertex_cover(G.copy())
-            print(f"Vertex Cover (Greedy): {cover}")
+            self.append_to_results(f"Vertex Cover (Greedy): {cover}")
+            plt.figure()  # Crear nueva figura
             nx.draw(G, with_labels=True)
             plt.show()
             
         elif "Ordenamiento - Visualización Normal" in algorithm:
+            # Ejecutar visualización de ordenamiento (sin mostrar tabla de resultados)
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
+            self.append_to_results(f"Secuencia inicial: {realidad}")
             bubble_sort_visual(realidad.copy(), deseo)
+            self.append_to_results(f"Secuencia final: {realidad}")
             
         else:  # Ordenamiento Circular
+            # Ejecutar visualización de ordenamiento circular (sin mostrar tabla de resultados)
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
+            self.append_to_results(f"Secuencia inicial: {realidad}")
             bubble_sort_circular(realidad.copy(), deseo)
+            self.append_to_results(f"Secuencia final: {realidad}")
 
 if __name__ == "__main__":
     root = tk.Tk()
