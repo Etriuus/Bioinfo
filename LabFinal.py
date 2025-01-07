@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 import numpy as np
 from itertools import combinations
+from matplotlib.animation import FuncAnimation
 
 # Definiciones de todas las funciones
 def is_vertex_cover(graph, subset):
@@ -33,6 +34,53 @@ def greedy_vertex_cover(graph):
             edges.discard((neighbor, max_degree_node))
         graph.remove_node(max_degree_node)
     return cover
+
+def visualizar_progreso(realidad, deseo, paso):
+    plt.figure(figsize=(10, 5))
+    plt.bar(range(len(realidad)), realidad, color='lightblue', label='Realidad')
+    plt.plot(range(len(deseo)), deseo, color='orange', marker='o', linestyle='-', label='Deseo')
+    plt.title(f"Paso {paso}: Reordenamiento de la Secuencia")
+    plt.xlabel("Índice")
+    plt.ylabel("Valor")
+    plt.legend()
+    plt.show()
+
+def bubble_sort_visual(realidad, deseo):
+    n = len(realidad)
+    pasos = 0
+    for i in range(n):
+        for j in range(0, n-i-1):
+            if realidad[j] > realidad[j+1]:
+                realidad[j], realidad[j+1] = realidad[j+1], realidad[j]
+                pasos += 1
+        visualizar_progreso(realidad, deseo, pasos)
+    return realidad
+
+def visualizar_circular(realidad, deseo, paso):
+    n = len(realidad)
+    angulos = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
+    ax.set_theta_direction(-1)
+    ax.set_theta_offset(np.pi / 2)
+    ax.scatter(angulos, deseo, color="orange", label="Deseo", s=100, alpha=0.7)
+    ax.scatter(angulos, realidad, color="blue", label="Realidad", s=100)
+    for i in range(n):
+        ax.plot([angulos[i], angulos[i]], [realidad[i], deseo[i]], 
+                color="gray", linestyle="--", alpha=0.5)
+    plt.title(f"Paso {paso}: Estado de la Secuencia", va="bottom")
+    ax.legend(loc="upper right")
+    plt.show()
+
+def bubble_sort_circular(realidad, deseo):
+    n = len(realidad)
+    pasos = 0
+    for i in range(n):
+        for j in range(0, n-i-1):
+            if realidad[j] > realidad[j+1]:
+                realidad[j], realidad[j+1] = realidad[j+1], realidad[j]
+                pasos += 1
+                visualizar_circular(realidad, deseo, pasos)
+    return realidad
 
 class GraphVisualizer:
     def __init__(self, root):
@@ -189,11 +237,11 @@ class GraphVisualizer:
             self.next_button = ttk.Button(self.visual_frame, text="Siguiente", command=self.next_step)
             self.next_button.pack(side='left', padx=10)
             
-        else:  # Ordenamiento Circular
+        elif "Ordenamiento - Visualización Circular" in algorithm:
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
-            self.bubble_sort_circular(realidad.copy(), deseo)
+            bubble_sort_circular(realidad.copy(), deseo)
     
     def bubble_sort_steps(self, realidad, deseo):
         steps = []
