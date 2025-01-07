@@ -6,6 +6,7 @@ from tkinter import ttk
 import numpy as np
 from itertools import combinations
 from matplotlib.animation import FuncAnimation
+from Eduardo.Lab8 import TreeVisualizer
 
 # Definiciones de todas las funciones
 def is_vertex_cover(graph, subset):
@@ -82,6 +83,8 @@ def bubble_sort_circular(realidad, deseo):
                 visualizar_circular(realidad, deseo, pasos)
     return realidad
 
+
+
 class GraphVisualizer:
     def __init__(self, root):
         self.root = root
@@ -104,7 +107,8 @@ class GraphVisualizer:
                                                    "Vertex Cover - Brute Force",
                                                    "Vertex Cover - Greedy",
                                                    "Ordenamiento - Visualización Normal",
-                                                   "Ordenamiento - Visualización Circular"],
+                                                   "Ordenamiento - Visualización Circular",
+                                                   "Visualizacón - Arboles"],
                                            state='readonly',
                                            width=30)
         self.algorithm_type.pack(side='left', padx=(10, 0))
@@ -185,6 +189,8 @@ class GraphVisualizer:
             self.setup_ppi_params()
         elif "Vertex Cover" in algorithm:
             self.setup_vertex_cover_params()
+        elif "Visualizacón - Arboles" in algorithm:
+            ttk.Label(self.params_frame, text="Sin parámetros configurables").pack(pady=5, padx=10)
         else:
             self.setup_sorting_params()
 
@@ -266,6 +272,11 @@ class GraphVisualizer:
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
             bubble_sort_circular(realidad.copy(), deseo)
+    
+        elif "Visualizacón - Arboles" in algorithm:
+            # Crear y mostrar árboles ultramétricos y aditivos
+            tree = TreeVisualizer(self.root)
+            tree.create_main_menu()
 
     def bubble_sort_steps(self, realidad, deseo):
         steps = []
