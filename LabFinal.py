@@ -7,6 +7,7 @@ import numpy as np
 from itertools import combinations
 from matplotlib.animation import FuncAnimation
 from Eduardo.Lab8 import TreeVisualizer
+from Waofin.Lab6_Waofin import generate_unique_permutations, compare_permutation_methods, generate_unique_combinations, compare_unique_combinations, transform_sequence
 
 # Definiciones de todas las funciones
 def is_vertex_cover(graph, subset):
@@ -108,7 +109,10 @@ class GraphVisualizer:
                                                    "Vertex Cover - Greedy",
                                                    "Ordenamiento - Visualización Normal",
                                                    "Ordenamiento - Visualización Circular",
-                                                   "Visualizacón - Arboles"],
+                                                   "Visualizacón - Arboles",
+                                                   "Permutaciones Únicas",
+                                                   "Combinaciones Únicas",
+                                                   "Transformación de Secuencia"],
                                            state='readonly',
                                            width=30)
         self.algorithm_type.pack(side='left', padx=(10, 0))
@@ -180,6 +184,45 @@ class GraphVisualizer:
         ttk.Label(frame, text="Longitud de la secuencia:").pack(side='left')
         ttk.Entry(frame, textvariable=self.sequence_length, width=10).pack(side='left', padx=(10, 0))
 
+    def setup_permutation_params(self):
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
+
+        frame = ttk.Frame(self.params_frame)
+        frame.pack(padx=10, pady=5)
+
+        self.permutation_input = tk.StringVar()
+        ttk.Label(frame, text="Elementos (separados por comas):").pack(anchor="w", pady=2)
+        ttk.Entry(frame, textvariable=self.permutation_input, width=30).pack(anchor="w", pady=2)
+
+    def setup_combination_params(self):
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
+
+        frame = ttk.Frame(self.params_frame)
+        frame.pack(padx=10, pady=5)
+
+        self.combination_input = tk.StringVar()
+        self.combination_r = tk.IntVar(value=2)
+        ttk.Label(frame, text="Elementos (separados por comas):").pack(anchor="w", pady=2)
+        ttk.Entry(frame, textvariable=self.combination_input, width=30).pack(anchor="w", pady=2)
+        ttk.Label(frame, text="Tamaño de las combinaciones:").pack(anchor="w", pady=2)
+        ttk.Entry(frame, textvariable=self.combination_r, width=10).pack(anchor="w", pady=2)
+
+    def setup_sequence_params(self):
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
+
+        frame = ttk.Frame(self.params_frame)
+        frame.pack(padx=10, pady=5)
+
+        self.start_sequence = tk.StringVar()
+        self.target_sequence = tk.StringVar()
+        ttk.Label(frame, text="Secuencia inicial (separada por comas):").pack(anchor="w", pady=2)
+        ttk.Entry(frame, textvariable=self.start_sequence, width=30).pack(anchor="w", pady=2)
+        ttk.Label(frame, text="Secuencia final (separada por comas):").pack(anchor="w", pady=2)
+        ttk.Entry(frame, textvariable=self.target_sequence, width=30).pack(anchor="w", pady=2)
+
     def update_params(self, event=None):
         for widget in self.params_frame.winfo_children():
             widget.destroy()
@@ -191,8 +234,14 @@ class GraphVisualizer:
             self.setup_vertex_cover_params()
         elif "Visualizacón - Arboles" in algorithm:
             ttk.Label(self.params_frame, text="Sin parámetros configurables").pack(pady=5, padx=10)
-        else:
+        elif "Ordenamiento" in algorithm:
             self.setup_sorting_params()
+        elif "Permutaciones Únicas" in algorithm:
+            self.setup_permutation_params()
+        elif "Combinaciones Únicas" in algorithm:
+            self.setup_combination_params()
+        elif "Transformación de Secuencia" in algorithm:
+            self.setup_sequence_params()
 
     def append_to_results(self, message):
         self.results_text.configure(state='normal')
@@ -277,6 +326,41 @@ class GraphVisualizer:
             # Crear y mostrar árboles ultramétricos y aditivos
             tree = TreeVisualizer(self.root)
             tree.create_main_menu()
+
+        elif "Permutaciones Únicas" in algorithm:
+            elements = self.permutation_input.get().split(',')
+            n_perms, t_unique, t_itertools, itertools_results = compare_permutation_methods(elements)
+            
+            # Mostrar resultados
+            self.results_frame.pack(fill='both', expand=True, pady=10, padx=5)
+            self.append_to_results(f"Permutaciones únicas encontradas: {n_perms}")
+            self.append_to_results(f"Tiempo (Implementación Única): {t_unique:.6f} segundos")
+            self.append_to_results(f"Tiempo (itertools): {t_itertools:.6f} segundos")
+            self.append_to_results(f"Primeras 5 permutaciones: {list(itertools_results)[:5]}")
+
+        elif "Combinaciones Únicas" in algorithm:
+            elements = self.combination_input.get().split(',')
+            r = self.combination_r.get()
+            n_combinations, t_combinations, combinations_list = compare_unique_combinations(elements, r)
+            
+            # Mostrar resultados
+            self.results_frame.pack(fill='both', expand=True, pady=10, padx=5)
+            self.append_to_results(f"Número de combinaciones únicas: {n_combinations}")
+            self.append_to_results(f"Tiempo de ejecución: {t_combinations:.6f} segundos")
+            self.append_to_results(f"Primeras 5 combinaciones: {list(combinations_list)[:5]}")
+
+        elif "Transformación de Secuencia" in algorithm:
+            start = self.start_sequence.get().split(',')
+            target = self.target_sequence.get().split(',')
+            
+            if len(start) != len(target):
+                self.append_to_results("Error: Las secuencias deben tener la misma longitud.")
+            else:
+                steps = transform_sequence(start, target)
+                self.results_frame.pack(fill='both', expand=True, pady=10, padx=5)
+                for step, description in steps:
+                    self.append_to_results(f"{description}: {step}")
+                self.append_to_results(f"Total pasos: {len(steps)}")
 
     def bubble_sort_steps(self, realidad, deseo):
         steps = []
