@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
@@ -86,8 +87,8 @@ class GraphVisualizer:
         self.root = root
         self.root.title("Visualizador de Algoritmos")
         
-        # Asegurar tamaño mínimo
-        self.root.minsize(400, 200)
+        # Asegurarse que la ventana tenga un tamaño mínimo
+        self.root.minsize(800, 600)
         
         # Frame principal
         self.main_frame = ttk.Frame(self.root)
@@ -129,6 +130,11 @@ class GraphVisualizer:
         
         # Vincular cambio de algoritmo
         self.algorithm_type.bind('<<ComboboxSelected>>', self.update_params)
+        
+        # Variables para visualización de ordenamiento
+        self.sort_steps = []
+        self.current_step = 0
+        self.canvas = None
     
     def setup_ppi_params(self):
         for widget in self.params_frame.winfo_children():
@@ -244,18 +250,62 @@ class GraphVisualizer:
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
-            self.append_to_results(f"Secuencia inicial: {realidad}")
-            bubble_sort_visual(realidad.copy(), deseo)
-            self.append_to_results(f"Secuencia final: {realidad}")
+            self.sort_steps = self.bubble_sort_steps(realidad.copy(), deseo)
+            self.current_step = 0
+            self.show_sort_step()
             
-        else:  # Ordenamiento Circular
-            # Ejecutar visualización de ordenamiento circular (sin mostrar tabla de resultados)
+            # Botones para navegar entre pasos
+            self.prev_button = ttk.Button(self.visual_frame, text="Anterior", command=self.prev_step)
+            self.prev_button.pack(side='left', padx=10)
+            self.next_button = ttk.Button(self.visual_frame, text="Siguiente", command=self.next_step)
+            self.next_button.pack(side='left', padx=10)
+            
+        elif "Ordenamiento - Visualización Circular" in algorithm:
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
             self.append_to_results(f"Secuencia inicial: {realidad}")
             bubble_sort_circular(realidad.copy(), deseo)
-            self.append_to_results(f"Secuencia final: {realidad}")
+    
+    def bubble_sort_steps(self, realidad, deseo):
+        steps = []
+        n = len(realidad)
+        pasos = 0
+        for i in range(n):
+            for j in range(0, n-i-1):
+                if realidad[j] > realidad[j+1]:
+                    realidad[j], realidad[j+1] = realidad[j+1], realidad[j]
+                    pasos += 1
+                    steps.append((realidad.copy(), deseo.copy(), pasos))
+        return steps
+    
+    def show_sort_step(self):
+        if self.sort_steps:
+            realidad, deseo, paso = self.sort_steps[self.current_step]
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.bar(range(len(realidad)), realidad, color='lightblue', label='Realidad')
+            ax.plot(range(len(deseo)), deseo, color='orange', marker='o', linestyle='-', label='Deseo')
+            ax.set_title(f"Paso {paso}: Reordenamiento de la Secuencia")
+            ax.set_xlabel("Índice")
+            ax.set_ylabel("Valor")
+            ax.legend()
+            
+            if self.canvas:
+                self.canvas.get_tk_widget().destroy()
+            
+            self.canvas = FigureCanvasTkAgg(fig, master=self.visual_frame)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack(fill='both', expand=True)
+    
+    def prev_step(self):
+        if self.current_step > 0:
+            self.current_step -= 1
+            self.show_sort_step()
+    
+    def next_step(self):
+        if self.current_step < len(self.sort_steps) - 1:
+            self.current_step += 1
+            self.show_sort_step()
 
 if __name__ == "__main__":
     root = tk.Tk()
