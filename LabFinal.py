@@ -1,10 +1,10 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
 from itertools import combinations
-from matplotlib.animation import FuncAnimation
 
 # Definiciones de todas las funciones
 def is_vertex_cover(graph, subset):
@@ -34,60 +34,13 @@ def greedy_vertex_cover(graph):
         graph.remove_node(max_degree_node)
     return cover
 
-def visualizar_progreso(realidad, deseo, paso):
-    plt.figure(figsize=(10, 5))
-    plt.bar(range(len(realidad)), realidad, color='lightblue', label='Realidad')
-    plt.plot(range(len(deseo)), deseo, color='orange', marker='o', linestyle='-', label='Deseo')
-    plt.title(f"Paso {paso}: Reordenamiento de la Secuencia")
-    plt.xlabel("Índice")
-    plt.ylabel("Valor")
-    plt.legend()
-    plt.show()
-
-def bubble_sort_visual(realidad, deseo):
-    n = len(realidad)
-    pasos = 0
-    for i in range(n):
-        for j in range(0, n-i-1):
-            if realidad[j] > realidad[j+1]:
-                realidad[j], realidad[j+1] = realidad[j+1], realidad[j]
-                pasos += 1
-        visualizar_progreso(realidad, deseo, pasos)
-    return realidad
-
-def visualizar_circular(realidad, deseo, paso):
-    n = len(realidad)
-    angulos = np.linspace(0, 2 * np.pi, n, endpoint=False)
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
-    ax.set_theta_direction(-1)
-    ax.set_theta_offset(np.pi / 2)
-    ax.scatter(angulos, deseo, color="orange", label="Deseo", s=100, alpha=0.7)
-    ax.scatter(angulos, realidad, color="blue", label="Realidad", s=100)
-    for i in range(n):
-        ax.plot([angulos[i], angulos[i]], [realidad[i], deseo[i]], 
-                color="gray", linestyle="--", alpha=0.5)
-    plt.title(f"Paso {paso}: Estado de la Secuencia", va="bottom")
-    ax.legend(loc="upper right")
-    plt.show()
-
-def bubble_sort_circular(realidad, deseo):
-    n = len(realidad)
-    pasos = 0
-    for i in range(n):
-        for j in range(0, n-i-1):
-            if realidad[j] > realidad[j+1]:
-                realidad[j], realidad[j+1] = realidad[j+1], realidad[j]
-                pasos += 1
-                visualizar_circular(realidad, deseo, pasos)
-    return realidad
-
 class GraphVisualizer:
     def __init__(self, root):
         self.root = root
         self.root.title("Visualizador de Algoritmos")
         
         # Asegurarse que la ventana tenga un tamaño mínimo
-        self.root.minsize(400, 300)
+        self.root.minsize(800, 600)
         
         # Frame principal con padding
         self.main_frame = ttk.Frame(self.root)
@@ -119,11 +72,20 @@ class GraphVisualizer:
                                    command=self.run_algorithm)
         self.run_button.pack(pady=10)
         
+        # Frame para visualización
+        self.visual_frame = ttk.Frame(self.main_frame)
+        self.visual_frame.pack(fill='both', expand=True)
+        
         # Inicializar parámetros
         self.setup_ppi_params()
         
         # Vincular cambio de algoritmo
         self.algorithm_type.bind('<<ComboboxSelected>>', self.update_params)
+        
+        # Variables para visualización de ordenamiento
+        self.sort_steps = []
+        self.current_step = 0
+        self.canvas = None
     
     def setup_ppi_params(self):
         for widget in self.params_frame.winfo_children():
@@ -217,13 +179,61 @@ class GraphVisualizer:
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
-            bubble_sort_visual(realidad.copy(), deseo)
+            self.sort_steps = self.bubble_sort_steps(realidad.copy(), deseo)
+            self.current_step = 0
+            self.show_sort_step()
+            
+            # Botones para navegar entre pasos
+            self.prev_button = ttk.Button(self.visual_frame, text="Anterior", command=self.prev_step)
+            self.prev_button.pack(side='left', padx=10)
+            self.next_button = ttk.Button(self.visual_frame, text="Siguiente", command=self.next_step)
+            self.next_button.pack(side='left', padx=10)
             
         else:  # Ordenamiento Circular
             n = int(self.sequence_length.get())
             realidad = list(np.random.permutation(n) + 1)
             deseo = sorted(realidad)
-            bubble_sort_circular(realidad.copy(), deseo)
+            self.bubble_sort_circular(realidad.copy(), deseo)
+    
+    def bubble_sort_steps(self, realidad, deseo):
+        steps = []
+        n = len(realidad)
+        pasos = 0
+        for i in range(n):
+            for j in range(0, n-i-1):
+                if realidad[j] > realidad[j+1]:
+                    realidad[j], realidad[j+1] = realidad[j+1], realidad[j]
+                    pasos += 1
+                    steps.append((realidad.copy(), deseo.copy(), pasos))
+        return steps
+    
+    def show_sort_step(self):
+        if self.sort_steps:
+            realidad, deseo, paso = self.sort_steps[self.current_step]
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.bar(range(len(realidad)), realidad, color='lightblue', label='Realidad')
+            ax.plot(range(len(deseo)), deseo, color='orange', marker='o', linestyle='-', label='Deseo')
+            ax.set_title(f"Paso {paso}: Reordenamiento de la Secuencia")
+            ax.set_xlabel("Índice")
+            ax.set_ylabel("Valor")
+            ax.legend()
+            
+            if self.canvas:
+                self.canvas.get_tk_widget().destroy()
+            
+            self.canvas = FigureCanvasTkAgg(fig, master=self.visual_frame)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack(fill='both', expand=True)
+    
+    def prev_step(self):
+        if self.current_step > 0:
+            self.current_step -= 1
+            self.show_sort_step()
+    
+    def next_step(self):
+        if self.current_step < len(self.sort_steps) - 1:
+            self.current_step += 1
+            self.show_sort_step()
 
 if __name__ == "__main__":
     root = tk.Tk()
